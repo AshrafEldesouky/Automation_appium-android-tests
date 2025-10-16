@@ -1,0 +1,34 @@
+{
+  "pixel_emulator":
+  {
+    "platformName": "Android",
+    "automationName": "UiAutomator2",
+    "udid": "emulator-5554",
+    "deviceName": "Pixel 3",
+
+    "appPath": "apps/swaglabs.apk",
+
+    "appPackage": "com.swaglabsmobileapp",
+    "appActivity": "com.swaglabsmobileapp.SplashActivity",
+
+    "noReset": false,
+    "fullReset": false,
+    "autoGrantPermissions": true
+  },
+
+  "real_samsung":
+   {
+    "platformName": "Android",
+    "automationName": "UiAutomator2",
+    "udid": "R58M12345AB",
+    "deviceName": "Galaxy S21",
+
+    "appPackage": "com.your.app",
+    "appActivity": "com.your.app.MainActivity",
+
+     "noReset": false,
+     "fullReset": false,
+     "autoGrantPermissions": true
+
+   }
+}
