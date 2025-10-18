@@ -1,0 +1,43 @@
+name: Android E2E on BrowserStack
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Run TestNG on BrowserStack
+        env:
+          BS_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BS_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        run: |
+          mvn -B \
+            -DserverUrl="https://${BS_USERNAME}:${BS_ACCESS_KEY}@hub.browserstack.com/wd/hub" \
+            -DdeviceKey=bs_pixel7_a13 \
+            "-Dsurefire.suiteXmlFiles=src/test/resources/testng.xml" \
+            test
+
+      - name: Upload reports & artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            artifacts/reports/ExtentReport.html
+            artifacts/screenshots/**
+            artifacts/videos/**
+            target/surefire-reports/**
