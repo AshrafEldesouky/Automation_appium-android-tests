@@ -1,34 +1,46 @@
 {
-  "pixel_emulator":
-  {
+  "pixel_emulator": {
     "platformName": "Android",
     "automationName": "UiAutomator2",
     "udid": "emulator-5554",
     "deviceName": "Pixel 3",
-
     "appPath": "apps/swaglabs.apk",
-
     "appPackage": "com.swaglabsmobileapp",
     "appActivity": "com.swaglabsmobileapp.SplashActivity",
-
     "noReset": false,
     "fullReset": false,
     "autoGrantPermissions": true
   },
 
-  "real_samsung":
-   {
+  "real_samsung": {
     "platformName": "Android",
     "automationName": "UiAutomator2",
     "udid": "R58M12345AB",
     "deviceName": "Galaxy S21",
-
     "appPackage": "com.your.app",
     "appActivity": "com.your.app.MainActivity",
+    "noReset": false,
+    "fullReset": false,
+    "autoGrantPermissions": true
+  },
 
-     "noReset": false,
-     "fullReset": false,
-     "autoGrantPermissions": true
+  "bs_pixel7_a13": {
+    "platformName": "Android",
+    "automationName": "UiAutomator2",
+    "deviceName": "Google Pixel 7",
+    "platformVersion": "13.0",
+    "appPackage": "com.swaglabsmobileapp",
+    "appActivity": "com.swaglabsmobileapp.SplashActivity",
+    "noReset": true,
 
-   }
+    "app": "bs://f4a2ee01fd2c8a7e6c03dc650e915a9ee4975220",
+
+    "project": "Appium Android",
+    "build": "CI Build",
+    "name": "LoginTests_canLogin",
+    "browserstack.debug": true,
+    "browserstack.networkLogs": true,
+    "browserstack.deviceLogs": true,
+    "browserstack.video": true
+  }
 }

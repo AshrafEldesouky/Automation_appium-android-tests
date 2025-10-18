@@ -8,6 +8,8 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 import Reportes.ExtentListener;
 
+import java.util.Locale;
+
 public class LoginTests extends BaseTest {
 
     private static final Logger log = LoggerFactory.getLogger(LoginTests.class);
@@ -26,6 +28,6 @@ public class LoginTests extends BaseTest {
         log.info("Home title read = [{}]", actual);
         ExtentListener.log("Home title = " + actual);
 
-        Assert.assertEquals(actual.toUpperCase(), "PRODUCTS", "Home title should match");
+        Assert.assertEquals(actual.toUpperCase(Locale.ROOT), "PRODUCTS", "Home title should match");
     }
 }
