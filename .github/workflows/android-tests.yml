@@ -20,7 +20,7 @@ jobs:
           java-version: "21"
           cache: maven
 
-      # Check BrowserStack secrets
+      # ---- BrowserStack secrets check (username/key) ----
       - name: Verify BS env (masked)
         env:
           BS_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
@@ -55,7 +55,7 @@ jobs:
             target/surefire-reports/**
           if-no-files-found: ignore
 
-      # Email the report on every run (success/failure)
+      # ---- Download artifacts to attach in email ----
       - name: Download test artifacts
         if: always()
         uses: actions/download-artifact@v4
@@ -63,31 +63,27 @@ jobs:
           name: test-artifacts
           path: out
 
-      # Check SMTP secrets (Outlook / Microsoft 365)
-      - name: Verify SMTP env (masked)
+      # ---- SMTP sanity (username/password only). Server/port are hard-coded below. ----
+      - name: Verify SMTP creds (masked)
         if: always()
         env:
-          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
           echo "::add-mask::${SMTP_PASSWORD}"
-          test -n "${SMTP_SERVER}"   && echo "SMTP_SERVER set? YES"   || (echo "SMTP_SERVER set? NO" && exit 1)
-          test -n "${SMTP_PORT}"     && echo "SMTP_PORT set? YES"     || (echo "SMTP_PORT set? NO" && exit 1)
           test -n "${SMTP_USERNAME}" && echo "SMTP_USERNAME set? YES" || (echo "SMTP_USERNAME set? NO" && exit 1)
           test -n "${SMTP_PASSWORD}" && echo "SMTP_PASSWORD set? YES" || (echo "SMTP_PASSWORD set? NO" && exit 1)
 
+      # ---- Email report every run (success/failure) via Outlook 365 ----
       - name: Send Extent report by email
         if: always()
         uses: dawidd6/action-send-mail@v3
         with:
-          # Outlook / Microsoft 365 SMTP (set via repo secrets)
-          server_address: ${{ secrets.SMTP_SERVER }}     # e.g. smtp.office365.com
-          server_port: ${{ secrets.SMTP_PORT }}          # e.g. 587
-          username: ${{ secrets.SMTP_USERNAME }}         # amhegazi@am.gov.ae
-          password: ${{ secrets.SMTP_PASSWORD }}         # account password (SMTP AUTH must be allowed)
-          secure: true                                   # STARTTLS on 587
+          server_address: smtp.office365.com
+          server_port: 587
+          username: ${{ secrets.SMTP_USERNAME }}   # e.g. amhegazi@am.gov.ae
+          password: ${{ secrets.SMTP_PASSWORD }}   # must allow SMTP AUTH
+          secure: true                             # STARTTLS on 587
 
           from: "CI Bot <${{ secrets.SMTP_USERNAME }}>"
           to: "ashraf.mohamed.a250@gmail.com"
