@@ -20,7 +20,8 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Verify env (masked)
+      # Check BrowserStack secrets
+      - name: Verify BS env (masked)
         env:
           BS_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BS_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
@@ -28,8 +29,8 @@ jobs:
           echo "Java:" && java -version
           echo "Maven:" && mvn -version
           echo "::add-mask::${BS_ACCESS_KEY}"
-          echo "BS_USERNAME set? " $([ -z "${BS_USERNAME}" ] && echo "NO" || echo "YES")
-          echo "BS_ACCESS_KEY set? " $([ -z "${BS_ACCESS_KEY}" ] && echo "NO" || echo "YES")
+          test -n "${BS_USERNAME}" && echo "BS_USERNAME set? YES" || (echo "BS_USERNAME set? NO" && exit 1)
+          test -n "${BS_ACCESS_KEY}" && echo "BS_ACCESS_KEY set? YES" || (echo "BS_ACCESS_KEY set? NO" && exit 1)
 
       - name: Run TestNG on BrowserStack
         env:
@@ -52,8 +53,9 @@ jobs:
             artifacts/screenshots/**
             artifacts/videos/**
             target/surefire-reports/**
+          if-no-files-found: ignore
 
-      # Email the report on every run (success or failure)
+      # Email the report on every run (success/failure)
       - name: Download test artifacts
         if: always()
         uses: actions/download-artifact@v4
@@ -61,16 +63,31 @@ jobs:
           name: test-artifacts
           path: out
 
+      # Check SMTP secrets (Outlook / Microsoft 365)
+      - name: Verify SMTP env (masked)
+        if: always()
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          echo "::add-mask::${SMTP_PASSWORD}"
+          test -n "${SMTP_SERVER}"   && echo "SMTP_SERVER set? YES"   || (echo "SMTP_SERVER set? NO" && exit 1)
+          test -n "${SMTP_PORT}"     && echo "SMTP_PORT set? YES"     || (echo "SMTP_PORT set? NO" && exit 1)
+          test -n "${SMTP_USERNAME}" && echo "SMTP_USERNAME set? YES" || (echo "SMTP_USERNAME set? NO" && exit 1)
+          test -n "${SMTP_PASSWORD}" && echo "SMTP_PASSWORD set? YES" || (echo "SMTP_PASSWORD set? NO" && exit 1)
+
       - name: Send Extent report by email
         if: always()
         uses: dawidd6/action-send-mail@v3
         with:
-          # SMTP settings come from repo secrets (see note below)
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-          secure: true
+          # Outlook / Microsoft 365 SMTP (set via repo secrets)
+          server_address: ${{ secrets.SMTP_SERVER }}     # e.g. smtp.office365.com
+          server_port: ${{ secrets.SMTP_PORT }}          # e.g. 587
+          username: ${{ secrets.SMTP_USERNAME }}         # amhegazi@am.gov.ae
+          password: ${{ secrets.SMTP_PASSWORD }}         # account password (SMTP AUTH must be allowed)
+          secure: true                                   # STARTTLS on 587
 
           from: "CI Bot <${{ secrets.SMTP_USERNAME }}>"
           to: "ashraf.mohamed.a250@gmail.com"
