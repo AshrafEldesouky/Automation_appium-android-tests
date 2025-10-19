@@ -20,42 +20,30 @@ jobs:
           java-version: "21"
           cache: maven
 
-      # مجرد فحص إن سيكرتس BrowserStack متوفرة (عرض مقنّع)
       - name: Verify BS env (masked)
-        if: always()
         env:
           BS_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BS_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
         run: |
           echo "::add-mask::${BS_ACCESS_KEY}"
-          test -n "${BS_USERNAME}" && echo "BS_USERNAME set: YES" || (echo "BS_USERNAME set: NO"; exit 1)
-          test -n "${BS_ACCESS_KEY}" && echo "BS_ACCESS_KEY set: YES" || (echo "BS_ACCESS_KEY set: NO"; exit 1)
+          test -n "${BS_USERNAME}" || (echo "Missing BROWSERSTACK_USERNAME"; exit 1)
+          test -n "${BS_ACCESS_KEY}" || (echo "Missing BROWSERSTACK_ACCESS_KEY"; exit 1)
 
       - name: Run TestNG on BrowserStack
-        env:
-          BS_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
-          BS_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
         run: |
           mvn -B \
-            -DserverUrl="https://${BS_USERNAME}:${BS_ACCESS_KEY}@hub.browserstack.com/wd/hub" \
+            -DserverUrl="https://${{ secrets.BROWSERSTACK_USERNAME }}:${{ secrets.BROWSERSTACK_ACCESS_KEY }}@hub.browserstack.com/wd/hub" \
             -DdeviceKey=bs_pixel7_a13 \
             "-Dsurefire.suiteXmlFiles=src/test/resources/testng.xml" \
             test
 
-      # نجمع التقارير في مجلد out/ ليسهل إرفاقها وإرسالها
       - name: Collect reports
         if: always()
         run: |
-          mkdir -p out/artifacts/reports
-          mkdir -p out/target/surefire-reports
-          # ExtentReport (لو موجود)
-          if [ -f artifacts/reports/ExtentReport.html ]; then
-            cp artifacts/reports/ExtentReport.html out/artifacts/reports/ExtentReport.html
-          fi
-          # TestNG results
-          if [ -f target/surefire-reports/testng-results.xml ]; then
-            cp target/surefire-reports/testng-results.xml out/target/surefire-reports/testng-results.xml
-          fi
+          mkdir -p out/artifacts/reports out/target/surefire-reports
+          [ -f artifacts/reports/ExtentReport.html ] && cp artifacts/reports/ExtentReport.html out/artifacts/reports/ExtentReport.html || true
+          [ -f target/surefire-reports/testng-results.xml ] && cp target/surefire-reports/testng-results.xml out/target/surefire-reports/testng-results.xml || true
+          ls -R out || true
 
       - name: Upload reports & artifacts
         if: always()
@@ -65,40 +53,35 @@ jobs:
           path: |
             out/artifacts/reports/ExtentReport.html
             out/target/surefire-reports/testng-results.xml
-            artifacts/screenshots/**
-            artifacts/videos/**
-          if-no-files-found: warn
 
-      # --- تحقق من وجود SMTP secrets وحدد "جاهز" ---
+      # ---- Email (Office 365 STARTTLS) ----
       - name: Check SMTP secrets
         if: always()
         id: smtp
         env:
+          SMTP_SERVER:   ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT:     ${{ secrets.SMTP_PORT }}
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
           echo "::add-mask::${SMTP_PASSWORD}"
-          if [ -z "${SMTP_USERNAME}" ] || [ -z "${SMTP_PASSWORD}" ]; then
-            echo "ready=no" >> $GITHUB_OUTPUT
-            echo "⚠️ Missing SMTP secrets: SMTP_USERNAME / SMTP_PASSWORD"
-            exit 0
-          else
-            echo "ready=yes" >> $GITHUB_OUTPUT
-            echo "SMTP secrets present."
-          fi
+          ok="yes"
+          for v in SMTP_SERVER SMTP_PORT SMTP_USERNAME SMTP_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "MISSING $v"; ok="no"; fi
+          done
+          echo "ready=${ok}" >> $GITHUB_OUTPUT
 
-      # --- ابعت الإيميل فقط لو جاهز = yes ---
       - name: Send Extent report by email (Outlook 365 STARTTLS)
         if: always() && steps.smtp.outputs.ready == 'yes'
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: smtp.office365.com
-          server_port: 587
-          secure: false                # STARTTLS على 587
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-          from: ${{ secrets.SMTP_USERNAME }}   # لازم يساوي username/الحساب المرسل
-          to: amhegazi@am.gov.ae, ashraf.mohamed.a250@gmail.com    # استبدله أو أضف مستلمين مفصولين بفواصل
+          server_address: ${{ secrets.SMTP_SERVER }}   # smtp.office365.com
+          server_port:    ${{ secrets.SMTP_PORT }}     # 587
+          secure: false                                # STARTTLS
+          username:      ${{ secrets.SMTP_USERNAME }}  # amhegazi@am.gov.ae
+          password:      ${{ secrets.SMTP_PASSWORD }}
+          from:          ${{ secrets.SMTP_USERNAME }}  # لازم يساوي username
+          to:            amhegazi@am.gov.ae            # المرسل = المستقبل
           subject: "Android E2E Report #${{ github.run_number }} — ${{ job.status }}"
           body: |
             Repository : ${{ github.repository }}
@@ -106,10 +89,6 @@ jobs:
             Run URL    : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             Branch     : ${{ github.ref_name }}
             Status     : ${{ job.status }}
-
-            Attachments:
-            - ExtentReport.html
-            - TestNG results (XML)
           attachments: |
             out/artifacts/reports/ExtentReport.html
             out/target/surefire-reports/testng-results.xml
