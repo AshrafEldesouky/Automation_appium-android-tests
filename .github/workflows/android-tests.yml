@@ -98,7 +98,7 @@ jobs:
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
           from: ${{ secrets.SMTP_USERNAME }}   # لازم يساوي username/الحساب المرسل
-          to: ashraf.mohamed.a250@gmail.com    # استبدله أو أضف مستلمين مفصولين بفواصل
+          to: amhegazi@am.gov.ae, ashraf.mohamed.a250@gmail.com    # استبدله أو أضف مستلمين مفصولين بفواصل
           subject: "Android E2E Report #${{ github.run_number }} — ${{ job.status }}"
           body: |
             Repository : ${{ github.repository }}
