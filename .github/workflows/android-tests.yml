@@ -20,17 +20,14 @@ jobs:
           java-version: "21"
           cache: maven
 
-      # ---- Check BrowserStack secrets ----
       - name: Verify BS env (masked)
         env:
           BS_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BS_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
         run: |
-          echo "Java:" && java -version
-          echo "Maven:" && mvn -version
           echo "::add-mask::${BS_ACCESS_KEY}"
-          test -n "${BS_USERNAME}" && echo "BS_USERNAME set? YES" || (echo "BS_USERNAME set? NO" && exit 1)
-          test -n "${BS_ACCESS_KEY}" && echo "BS_ACCESS_KEY set? YES" || (echo "BS_ACCESS_KEY set? NO" && exit 1)
+          test -n "${BS_USERNAME}" || (echo "Missing BROWSERSTACK_USERNAME"; exit 1)
+          test -n "${BS_ACCESS_KEY}" || (echo "Missing BROWSERSTACK_ACCESS_KEY"; exit 1)
 
       - name: Run TestNG on BrowserStack
         env:
@@ -55,7 +52,6 @@ jobs:
             target/surefire-reports/**
           if-no-files-found: ignore
 
-      # ---- Download artifacts to attach in email ----
       - name: Download test artifacts
         if: always()
         uses: actions/download-artifact@v4
@@ -63,7 +59,6 @@ jobs:
           name: test-artifacts
           path: out
 
-      # ---- Check SMTP creds exist (username/password) ----
       - name: Verify SMTP creds (masked)
         if: always()
         env:
@@ -71,22 +66,21 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
           echo "::add-mask::${SMTP_PASSWORD}"
-          test -n "${SMTP_USERNAME}" && echo "SMTP_USERNAME set? YES" || (echo "SMTP_USERNAME set? NO" && exit 1)
-          test -n "${SMTP_PASSWORD}" && echo "SMTP_PASSWORD set? YES" || (echo "SMTP_PASSWORD set? NO" && exit 1)
+          test -n "${SMTP_USERNAME}" || (echo "Missing SMTP_USERNAME"; exit 1)
+          test -n "${SMTP_PASSWORD}" || (echo "Missing SMTP_PASSWORD"; exit 1)
 
-      # ---- Email report every run (Outlook 365 via STARTTLS) ----
-      - name: Send Extent report by email
+      - name: Send Extent report by email (Outlook 365 STARTTLS)
         if: always()
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.office365.com
           server_port: 587
-          secure: false                           # STARTTLS on 587
-          username: ${{ secrets.SMTP_USERNAME }}  # e.g. amhegazi@am.gov.ae
-          password: ${{ secrets.SMTP_PASSWORD }}  # SMTP AUTH must be allowed
+          secure: false                      # STARTTLS على 587
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
 
-          from: "CI Bot <amhegazi@am.gov.ae>"
-          to: "ashraf.mohamed.a250@gmail.com"
+          from: ${{ secrets.SMTP_USERNAME }} # لازم يساوي الـ username
+          to: ashraf.mohamed.a250@gmail.com
           subject: "Android E2E Report #${{ github.run_number }} — ${{ job.status }}"
           body: |
             Repository : ${{ github.repository }}
