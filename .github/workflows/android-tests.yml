@@ -20,7 +20,6 @@ jobs:
           java-version: "21"
           cache: maven
 
-      # Quick sanity check that secrets are available (values are masked)
       - name: Verify env (masked)
         env:
           BS_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
@@ -53,3 +52,40 @@ jobs:
             artifacts/screenshots/**
             artifacts/videos/**
             target/surefire-reports/**
+
+      # Email the report on every run (success or failure)
+      - name: Download test artifacts
+        if: always()
+        uses: actions/download-artifact@v4
+        with:
+          name: test-artifacts
+          path: out
+
+      - name: Send Extent report by email
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          # SMTP settings come from repo secrets (see note below)
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          secure: true
+
+          from: "CI Bot <${{ secrets.SMTP_USERNAME }}>"
+          to: "ashraf.mohamed.a250@gmail.com"
+          subject: "Android E2E Report #${{ github.run_number }} — ${{ job.status }}"
+          body: |
+            Repository : ${{ github.repository }}
+            Workflow   : ${{ github.workflow }}
+            Run URL    : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Branch     : ${{ github.ref_name }}
+            Status     : ${{ job.status }}
+
+            Attachments:
+            - ExtentReport.html
+            - TestNG results (XML)
+
+          attachments: |
+            out/artifacts/reports/ExtentReport.html
+            out/target/surefire-reports/testng-results.xml
