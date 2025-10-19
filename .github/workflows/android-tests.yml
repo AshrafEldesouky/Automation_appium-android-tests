@@ -20,7 +20,7 @@ jobs:
           java-version: "21"
           cache: maven
 
-      # ---- BrowserStack secrets check (username/key) ----
+      # ---- Check BrowserStack secrets ----
       - name: Verify BS env (masked)
         env:
           BS_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
@@ -63,7 +63,7 @@ jobs:
           name: test-artifacts
           path: out
 
-      # ---- SMTP sanity (username/password only). Server/port are hard-coded below. ----
+      # ---- Check SMTP creds exist (username/password) ----
       - name: Verify SMTP creds (masked)
         if: always()
         env:
@@ -74,18 +74,18 @@ jobs:
           test -n "${SMTP_USERNAME}" && echo "SMTP_USERNAME set? YES" || (echo "SMTP_USERNAME set? NO" && exit 1)
           test -n "${SMTP_PASSWORD}" && echo "SMTP_PASSWORD set? YES" || (echo "SMTP_PASSWORD set? NO" && exit 1)
 
-      # ---- Email report every run (success/failure) via Outlook 365 ----
+      # ---- Email report every run (Outlook 365 via STARTTLS) ----
       - name: Send Extent report by email
         if: always()
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.office365.com
           server_port: 587
-          username: ${{ secrets.SMTP_USERNAME }}   # e.g. amhegazi@am.gov.ae
-          password: ${{ secrets.SMTP_PASSWORD }}   # must allow SMTP AUTH
-          secure: true                             # STARTTLS on 587
+          secure: false                           # STARTTLS on 587
+          username: ${{ secrets.SMTP_USERNAME }}  # e.g. amhegazi@am.gov.ae
+          password: ${{ secrets.SMTP_PASSWORD }}  # SMTP AUTH must be allowed
 
-          from: "CI Bot <${{ secrets.SMTP_USERNAME }}>"
+          from: "CI Bot <amhegazi@am.gov.ae>"
           to: "ashraf.mohamed.a250@gmail.com"
           subject: "Android E2E Report #${{ github.run_number }} — ${{ job.status }}"
           body: |
