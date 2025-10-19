@@ -20,6 +20,18 @@ jobs:
           java-version: "21"
           cache: maven
 
+      # Quick sanity check that secrets are available (values are masked)
+      - name: Verify env (masked)
+        env:
+          BS_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BS_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        run: |
+          echo "Java:" && java -version
+          echo "Maven:" && mvn -version
+          echo "::add-mask::${BS_ACCESS_KEY}"
+          echo "BS_USERNAME set? " $([ -z "${BS_USERNAME}" ] && echo "NO" || echo "YES")
+          echo "BS_ACCESS_KEY set? " $([ -z "${BS_ACCESS_KEY}" ] && echo "NO" || echo "YES")
+
       - name: Run TestNG on BrowserStack
         env:
           BS_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
